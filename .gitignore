@@ -1,0 +1,21 @@
+# Abaikan Virtual Environment (Wajib!)
+.venv/
+env/
+ENV/
+
+# Abaikan semua data mentah dan olahan dari GEE di folder data
+data/preprocessed/
+data/processed/
+data/raw/
+
+# Abaikan hasil eksekusi otomatis/run yang berukuran besar di folder outputs
+outputs/runs/
+
+# Abaikan file cache Python dan kompilasi
+__pycache__/
+*.pyc
+src/__pycache__/
+
+# Abaikan file sistem bawaan OS
+.DS_Store
+Thumbs.db

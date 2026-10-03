@@ -1,0 +1,171 @@
+project:
+  name: PLTS Context-Aware Clustering GeoBoundaries 137 Final - 6 Core Features
+  default_run_name: final_run_core_context_6
+  description: 'Pipeline revisi: dataset final 137 wilayah, feature utama core_context_6
+    tanpa thermal_heat_excess sebagai fitur utama, output ringkas untuk laporan, evaluasi
+    multi-kriteria, dan pemilihan model berbasis trade-off.'
+paths:
+  raw_dir: data/raw
+  preprocessed_dir: data/preprocessed
+  processed_dir: data/processed
+  output_dir: outputs/runs
+sampling:
+  initial_target_regions: 150
+  final_valid_regions_expected: 137
+  period_label: 2023-2025
+raw_files:
+- plts_context_aware_daily_2023_geoboundaries_150.csv
+- plts_context_aware_daily_2024_geoboundaries_150.csv
+- plts_context_aware_daily_2025_geoboundaries_150.csv
+files:
+  combined_daily_clean: combined_daily_2023_2025_clean.csv
+  summary_output: context_aware_summary_2023_2025.csv
+  clustered_output: context_aware_clustered_regions.csv
+thresholds:
+  hot_temp_c: 35
+  thermal_base_temp_c: 30
+  rainy_day_mm: 1
+preprocessing:
+  expected_years:
+  - 2023
+  - 2024
+  - 2025
+  expected_days_total: 1096
+  min_day_completeness_ratio: 0.9
+  clip_negative_precipitation: true
+  island_group_overrides:
+    Kota Bekasi: Jawa
+    Bekasi: Jawa
+    Kota Bogor: Jawa
+    Bogor: Jawa
+    Kota Tangerang: Jawa
+    Tangerang: Jawa
+    Tangerang Selatan: Jawa
+    Kota Tangerang Selatan: Jawa
+    Kota Cilegon: Jawa
+    Cilegon: Jawa
+    Tabanan: Bali_Nusa_Tenggara
+    Bangli: Bali_Nusa_Tenggara
+feature_engineering:
+  balanced_context_features:
+  - mean_daily_irradiance_kwh_m2
+  - monthly_irradiance_cv
+  - temperature_p90_c
+  - rainy_day_ratio
+  - relative_humidity_mean_pct
+  - elevation_m
+  correlation_threshold: 0.85
+  outlier_z_threshold: 3.0
+clustering:
+  primary_feature_set: core_context_6
+  primary_scaler: power_yj
+  model_selection:
+    strategy: multi_criteria_tradeoff
+    metric_best_label: metric_best_candidate
+    domain_selected_label: domain_selected_final
+    domain_selected:
+      algorithm: kmeans
+      n_clusters: 3
+      reason: Dipilih untuk mempertahankan tiga profil wilayah yang lebih informatif
+        setelah fitur utama direvisi menjadi 6 variabel inti tanpa thermal_heat_excess
+        sebagai fitur utama. Kandidat metric-best tetap dilaporkan secara transparan.
+    criteria:
+    - silhouette_score
+    - davies_bouldin_index
+    - calinski_harabasz_score
+    - cluster_balance
+    - subsampling_stability_ari
+    - feature_sensitivity_ari
+    - domain_interpretability
+  evaluation_feature_sets:
+  - core_context_6
+  evaluation_scalers:
+  - power_yj
+  sensitivity_feature_sets:
+  - with_thermal_heat
+  - diagnostic_context
+  feature_sets:
+    core_context_6:
+      description: 'Feature set utama 6 variabel inti: radiasi, kestabilan radiasi,
+        suhu tinggi, hujan, kelembapan, dan elevasi. Thermal heat/hot day tidak dipakai
+        sebagai fitur utama karena berbasis threshold operasional.'
+      features:
+      - mean_daily_irradiance_kwh_m2
+      - monthly_irradiance_cv
+      - temperature_p90_c
+      - rainy_day_ratio
+      - relative_humidity_mean_pct
+      - elevation_m
+    with_thermal_heat:
+      description: 'Skenario sensitivitas: menambahkan thermal_heat_excess_mean_c
+        untuk melihat pengaruh indikator tekanan panas berbasis baseline 30 C.'
+      features:
+      - mean_daily_irradiance_kwh_m2
+      - monthly_irradiance_cv
+      - temperature_p90_c
+      - thermal_heat_excess_mean_c
+      - rainy_day_ratio
+      - relative_humidity_mean_pct
+      - elevation_m
+    diagnostic_context:
+      description: Fitur diagnostik pembanding; tidak menjadi basis utama model final.
+        Memuat indikator threshold 30 C dan 35 C untuk analisis tambahan.
+      features:
+      - mean_daily_irradiance_kwh_m2
+      - monthly_irradiance_cv
+      - temperature_p90_c
+      - thermal_heat_excess_mean_c
+      - hot_day_35c_ratio
+      - rainy_day_ratio
+      - relative_humidity_mean_pct
+      - elevation_m
+  scalers:
+  - power_yj
+  - standard
+  - robust
+  algorithms:
+  - kmeans
+  - ahc
+  - gmm
+  k_values:
+  - 2
+  - 3
+  - 4
+  - 5
+  model_params:
+    kmeans:
+      n_init: 50
+      max_iter: 500
+      random_state: 2025
+    ahc:
+      linkage: ward
+      metric: euclidean
+    gmm:
+      n_init: 10
+      max_iter: 500
+      covariance_types:
+      - diag
+      - full
+      selection_criterion: bic
+      reg_covar: 1.0e-06
+      random_state: 2025
+  random_state: 2025
+  min_cluster_size_preferred: 8
+  stability:
+    method: subsampling_ari
+    n_runs: 100
+    sample_fraction: 0.8
+  composite_weights:
+    silhouette: 0.3
+    davies_bouldin: 0.2
+    calinski_harabasz: 0.15
+    balance: 0.2
+    stability: 0.15
+streamlit:
+  default_run_name: final_run_core_context_6
+outputs:
+  mode: essential_report
+  keep_extended_audit: false
+  keep_stability_detail: false
+  generate_maps: false
+  generate_extra_figures: false
